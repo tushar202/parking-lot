@@ -1,3 +1,4 @@
+```mermaid
 classDiagram
     class ParkingLot {
         - List~Level~ levels
