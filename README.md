@@ -1,103 +1,91 @@
 ```mermaid
 classDiagram
     class ParkingLot {
-        - List~Level~ levels
-        - SpotAllocator allocator
-        - PricingStrategy pricingStrategy
-        - PaymentProcessor paymentProcessor
-        - Map~String, Ticket~ activeTickets
-        + parkVehicle(v: Vehicle): Ticket
-        + unParkVehicle(ticketId: String): double
+        +List~Level~ levels
+        +addLevel(Level)
     }
 
     class Level {
-        - int floor
-        - List~ParkingSpot~ spots
-        + isFull(): boolean
-        + getAvailableSpots(type: SpotType): int
+        +String id
+        +List~Spot~ spots
+        +DisplayBoard displayBoard
+        +addSpots(List~Spot~)
+        +removeSpot(Spot)
     }
 
-    class ParkingSpot {
-        - String id
-        - SpotType type
-        - SpotStatus status
-        - Vehicle parkedVehicle
-        + assignVehicle(v: Vehicle)
-        + removeVehicle()
+    class Spot {
+        +String id
+        +Level level
+        +SpotType spotType
+        +boolean isEmpty
+    }
+
+    class SpotManager {
+        +List~Observer~ observers
+        +List~Level~ levels
+        +SpotAllocationStrategy strategy
+        +getEmptySpot(VehicleType): Spot
+        +blockSpot(Spot)
+        +freeUpSpot(Spot)
+        +registerObserver(Observer)
+        +removeObserver(Observer)
+        +notifyObservers(levelId, spotType, availableSpots)
+    }
+
+    class Observer {
+        <<interface>>
+        +update(levelId, spotType, availableSpots)
+    }
+
+    class DisplayBoard {
+        +update(levelId, spotType, availableSpots)
+    }
+
+    class SpotAllocationStrategy {
+        <<interface>>
+        +assignSpot(List~Level~, VehicleType): Spot
+    }
+
+    class EntryService {
+        +createTicket(Vehicle): Ticket
+    }
+
+    class ExitService {
+        +getFare(Ticket): double
+        +acceptPayment(fare)
+    }
+
+    class Ticket {
+        +String id
+        +Date entryTime
+        +Vehicle vehicle
+        +Spot spot
     }
 
     class Vehicle {
-        - String licenseNumber
-        - SpotType type
-    }
-    class Car
-    class MotorBike
-
-    class Ticket {
-        - String ticketId
-        - Vehicle vehicle
-        - ParkingSpot spot
-        - LocalDateTime entryTime
-        - LocalDateTime exitTime
-        + calculateFee(): double
+        +String vehicleNumber
+        +VehicleType vehicleType
     }
 
-    class TicketFactory {
-        + createTicket(v: Vehicle, spot: ParkingSpot): Ticket
-    }
-
-    class PricingStrategy {
+    class FeeCalculationStrategy {
         <<interface>>
-        + calculateFee(t: Ticket): double
+        +calculateFare(Ticket): double
     }
-    class HourBasisPricingStrategy
 
     class PaymentProcessor {
         <<interface>>
-        + processPayment(amount: double): boolean
-    }
-    class CashPaymentProcessor
-    class CardPaymentProcessor
-
-    class SpotAllocator {
-        <<interface>>
-        + allocateSpot(levels: Level[], v: Vehicle): ParkingSpot
-    }
-    class NearestFirstAllocator
-
-    class SpotType {
-        <<enumeration>>
-        MOTORBIKE
-        CAR
-        TRUCK
-    }
-    class SpotStatus {
-        <<enumeration>>
-        FREE
-        OCCUPIED
+        +processPayment(fare)
     }
 
-    %% relationships %%
-    ParkingLot "1" *-- "*" Level
-    Level "1" *-- "*" ParkingSpot
-    ParkingSpot "1" o-- "0..1" Vehicle
-    Vehicle <|-- Car
-    Vehicle <|-- MotorBike
-
-    ParkingLot o-- SpotAllocator
-    ParkingLot o-- PricingStrategy
-    ParkingLot o-- PaymentProcessor
-    ParkingLot o-- TicketFactory
-    ParkingLot o-- Ticket : activeTickets
-
-    TicketFactory ..> Ticket
-    Ticket ..> Vehicle
-    Ticket ..> ParkingSpot
-
-    PricingStrategy <|.. HourBasisPricingStrategy
-    PaymentProcessor <|.. CashPaymentProcessor
-    PaymentProcessor <|.. CardPaymentProcessor
-    SpotAllocator <|.. NearestFirstAllocator
-
-    ParkingSpot ..> SpotType
-    ParkingSpot ..> SpotStatus
+    ParkingLot --> Level
+    Level --> Spot
+    Level --> DisplayBoard
+    SpotManager --> Level
+    SpotManager --> SpotAllocationStrategy
+    SpotManager --> Observer
+    Observer <|.. DisplayBoard
+    EntryService --> SpotManager
+    ExitService --> FeeCalculationStrategy
+    ExitService --> PaymentProcessor
+    Ticket --> Vehicle
+    Ticket --> Spot
